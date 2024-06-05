@@ -135,9 +135,9 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         #endregion
 
         #region static helpers
-        public static X509Certificate2 LoadCertificateFromPEM(string certpem, string privatekeypem)
+        public static X509Certificate2 LoadCertificateFromPEM(string pem)
         {
-            using (var textReader = new StringReader(certpem + Environment.NewLine + privatekeypem))
+            using (var textReader = new StringReader(pem))
             {
                 using (PemReader reader = new PemReader(textReader))
                 {

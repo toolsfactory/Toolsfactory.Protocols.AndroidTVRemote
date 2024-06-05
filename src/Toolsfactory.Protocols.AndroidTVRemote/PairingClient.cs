@@ -41,7 +41,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
             _Logger = options.LoggerFactory?.CreateLogger<PairingClient>();
 
             GenerateClientCertificate();
-            ClientCertificate = CertificateBuilder.LoadCertificateFromPEM(ClientCertificatePEM, PrivateKeyPEM);
+            ClientCertificate = CertificateBuilder.LoadCertificateFromPEM(ClientCertificatePEM + Environment.NewLine + PrivateKeyPEM);
         }
 
         public async Task PreparePairingAsync()
