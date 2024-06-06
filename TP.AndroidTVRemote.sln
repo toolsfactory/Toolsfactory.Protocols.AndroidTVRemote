@@ -5,7 +5,7 @@ VisualStudioVersion = 17.10.34814.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Toolsfactory.Protocols.AndroidTVRemote", "src\Toolsfactory.Protocols.AndroidTVRemote\Toolsfactory.Protocols.AndroidTVRemote.csproj", "{42ED9883-162B-455D-B234-EF7AFE1067A8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Toolsfactory.Protocols.AndroidTVRemote.Tool", "Toolsfactory.Protocols.AndroidTVRemote.Tool\Toolsfactory.Protocols.AndroidTVRemote.Tool.csproj", "{E80E2A4E-4A3F-4969-9762-4E1EF8E158B4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Toolsfactory.Protocols.AndroidTVRemote.Tool", "src\Toolsfactory.Protocols.AndroidTVRemote.Tool\Toolsfactory.Protocols.AndroidTVRemote.Tool.csproj", "{E80E2A4E-4A3F-4969-9762-4E1EF8E158B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
