@@ -1,6 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Help;
+using System.CommandLine.Parsing;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,21 +17,38 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
         static async Task Main(string[] args)
         {
             var logger = factory.CreateLogger("Program");
+            var parser = CreateCommandLineParser();
 
-            RootCommand rootCommand = BuildCommandLine();
-            // await rootCommand.InvokeAsync("interactivepairing");
-            // await rootCommand.InvokeAsync("pair --host 172.16.14.142 --file c://temp//test.apair");
-            // await rootCommand.InvokeAsync("scan");
-            // await rootCommand.InvokeAsync("interactive  --config teststicklab.apair ");
-            // await rootCommand.InvokeAsync("sendkey DPAD_DOWN --config c://temp//test.apair ");
-
-            await rootCommand.InvokeAsync(args);
+            // await parser.InvokeAsync(args);
+            await parser.InvokeAsync("--help");
+            // await parser.InvokeAsync("interactivepairing");
+            // await parser.InvokeAsync("pair --host 172.16.14.142 --file c://temp//test.apair");
+            // await parser.InvokeAsync("scan");
+            // await parser.InvokeAsync("interactive  --config teststicklab.apair ");
+            // await parser.InvokeAsync("sendkey DPAD_DOWN --config c://temp//test.apair ");
         }
 
         #region Build Command Line arguments
-        private static RootCommand BuildCommandLine()
+        private static Parser CreateCommandLineParser()
         {
-            var rootCommand = new RootCommand("AndroidTV Command Line Tool");
+            RootCommand rootCommand = BuildRootCommand();
+            return new CommandLineBuilder(rootCommand)
+            .UseDefaults()
+            .UseHelp(ctx =>
+            {
+                ctx.HelpBuilder.CustomizeLayout(
+                    _ =>
+                        HelpBuilder.Default
+                            .GetLayout()
+                            .Prepend(_ => AnsiConsole.Write(new FigletText("Michael's AndroidTV Tool"))
+                    ));
+            })
+            .Build();
+        }
+        private static RootCommand BuildRootCommand()
+        {
+            var rootCommand = new RootCommand();
+            rootCommand.SetHandler(HandleMenuCommandAsync);
             rootCommand.Add(BuildMenuCommand());
             rootCommand.Add(BuildPairingCommand());
             rootCommand.Add(BuildSendKeyCommand());

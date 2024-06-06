@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Toolsfactory.Protocols.AndroidTVRemote\Toolsfactory.Protocols.AndroidTVRemote.csproj" />
+    <ProjectReference Include="..\Toolsfactory.Protocols.AndroidTVRemote\Toolsfactory.Protocols.AndroidTVRemote.csproj" />
   </ItemGroup>
 
 </Project>

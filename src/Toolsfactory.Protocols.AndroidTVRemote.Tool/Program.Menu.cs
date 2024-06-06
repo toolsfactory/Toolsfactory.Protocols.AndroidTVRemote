@@ -22,14 +22,14 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
         {
             PairingConfiguration? pairingConfig;
             WriteHeadline("Menu Mode");
-            /*
+
+            var choices = new string[] {"Interactive pairing", "Interact with device", "Show help", "Exit"};
             var device = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
-                    .Title("What device do you want to pair with?")
+                    .Title("What do you want to do?")
                     .PageSize(10)
                     .MoreChoicesText("[grey](Move up and down to reveal more devices)[/]")
                     .AddChoices(choices));
-            */
         }
 
     }
