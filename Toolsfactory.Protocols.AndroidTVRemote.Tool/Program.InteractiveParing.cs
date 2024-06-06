@@ -62,6 +62,11 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                 var input = AnsiConsole.Ask<string>("Please provide the secret: ");
                 Console.WriteLine();
                 var status = await tvPairingClient.FinishPairingAsync(input);
+                if(status != PairingResult.Success)
+                {
+                    AnsiConsole.MarkupLine($"[bold yellow]Pairing failed - {status}[/]");
+                    return;
+                }
             }
             catch (Exception ex)
             {
@@ -84,7 +89,8 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             Console.WriteLine();
 
             var config = new PairingConfiguration(name, id, host, tvPairingClient.ClientCertificatePEM+Environment.NewLine+tvPairingClient.PrivateKeyPEM);
-            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(config, typeof(PairingConfiguration), new JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = PairingConfigurationContext.Default });
+
             await File.WriteAllTextAsync(file, json);
             var fullPath = Path.GetFullPath(file);
             AnsiConsole.MarkupLine($"Certificate saved to [yellow]{fullPath}[/]");

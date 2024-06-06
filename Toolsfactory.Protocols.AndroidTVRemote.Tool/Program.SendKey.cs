@@ -24,7 +24,8 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             PairingConfiguration? pairingConfig;
             try
             {
-                pairingConfig = JsonSerializer.Deserialize<PairingConfiguration>(await File.ReadAllTextAsync(config));
+                var text = await File.ReadAllTextAsync(config);
+                pairingConfig = JsonSerializer.Deserialize<PairingConfiguration>(text, PairingConfigurationContext.Default.PairingConfiguration);
             }
             catch (Exception ex)
             {

@@ -3,6 +3,7 @@ using Spectre.Console;
 using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Zeroconf;
 
 namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
@@ -18,14 +19,17 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             // await rootCommand.InvokeAsync("interactivepairing");
             // await rootCommand.InvokeAsync("pair --host 172.16.14.142 --file c://temp//test.apair");
             // await rootCommand.InvokeAsync("scan");
-            await rootCommand.InvokeAsync("interactive  --config wohnzimmer.apair ");
+            // await rootCommand.InvokeAsync("interactive  --config teststicklab.apair ");
             // await rootCommand.InvokeAsync("sendkey DPAD_DOWN --config c://temp//test.apair ");
+
+            await rootCommand.InvokeAsync(args);
         }
 
         #region Build Command Line arguments
         private static RootCommand BuildCommandLine()
         {
             var rootCommand = new RootCommand("AndroidTV Command Line Tool");
+            rootCommand.Add(BuildMenuCommand());
             rootCommand.Add(BuildPairingCommand());
             rootCommand.Add(BuildSendKeyCommand());
             rootCommand.Add(BuildInteractiveCommand());

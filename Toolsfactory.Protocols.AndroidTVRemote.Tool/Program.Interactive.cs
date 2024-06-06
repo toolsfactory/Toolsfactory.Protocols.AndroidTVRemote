@@ -27,7 +27,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             try
             {
                 var text = await System.IO.File.ReadAllTextAsync(config);
-                pairingConfig = JsonSerializer.Deserialize<PairingConfiguration>(text);
+                pairingConfig = JsonSerializer.Deserialize<PairingConfiguration>(text, PairingConfigurationContext.Default.PairingConfiguration);
             }
             catch (Exception ex)
             {
@@ -61,6 +61,18 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                     case ConsoleKey.Spacebar: SendKey(RCKeyCode.Key_MEDIA_PLAY_PAUSE); break;
                     case ConsoleKey.Home: SendKey(RCKeyCode.Key_HOME); break;
                     case ConsoleKey.Delete: SendKey(RCKeyCode.Key_POWER); break;
+//                    case ConsoleKey.OemPlus: SendKey(RCKeyCode.Key_VOLUME_UP); break;
+//                    case ConsoleKey.OemMinus: SendKey(RCKeyCode.Key_VOLUME_DOWN); break;
+                    case ConsoleKey.D1: SendKey(RCKeyCode.Key_1); break;
+                    case ConsoleKey.D2: SendKey(RCKeyCode.Key_2); break;
+                    case ConsoleKey.D3: SendKey(RCKeyCode.Key_3); break;
+                    case ConsoleKey.D4: SendKey(RCKeyCode.Key_4); break;
+                    case ConsoleKey.D5: SendKey(RCKeyCode.Key_5); break;
+                    case ConsoleKey.D6: SendKey(RCKeyCode.Key_6); break;
+                    case ConsoleKey.D7: SendKey(RCKeyCode.Key_7); break;
+                    case ConsoleKey.D8: SendKey(RCKeyCode.Key_8); break;
+                    case ConsoleKey.D9: SendKey(RCKeyCode.Key_9); break;
+                    case ConsoleKey.D0: SendKey(RCKeyCode.Key_0); break;
                     default: break;
                 }
             } while (cki.Key != ConsoleKey.Escape);
