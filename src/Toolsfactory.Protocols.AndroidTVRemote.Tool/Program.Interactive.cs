@@ -73,6 +73,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                     case ConsoleKey.D8: SendKey(RCKeyCode.Key_8); break;
                     case ConsoleKey.D9: SendKey(RCKeyCode.Key_9); break;
                     case ConsoleKey.D0: SendKey(RCKeyCode.Key_0); break;
+                    case ConsoleKey.N: SendAppLaunch("com.netflix.ninja"); break;
                     default: break;
                 }
             } while (cki.Key != ConsoleKey.Escape);
@@ -81,6 +82,12 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             {
                 AnsiConsole.MarkupLine($"Sending key [yellow]{key}[/]");
                 await rcClient.PressKeyAsync(key);
+            }
+
+            async void SendAppLaunch(string app)
+            {
+                AnsiConsole.MarkupLine($"Sending App Launch [yellow]{app}[/]");
+                await rcClient.SendLaunchAppAsync(app);
             }
         }
 

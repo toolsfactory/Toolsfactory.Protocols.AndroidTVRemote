@@ -35,6 +35,16 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
             await _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token);
         }
 
+        public async Task SendLaunchAppAsync(string appLink)
+        {
+            if (!Connected)
+                return;
+
+            var msg = new RemoteMessage { RemoteAppLinkLaunchRequest = new RemoteAppLinkLaunchRequest() };
+            msg.RemoteAppLinkLaunchRequest.AppLink = appLink;
+            await _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token);
+        }
+
 
         #region Message Processing
         protected override void ProcessMessage(byte[] data)
