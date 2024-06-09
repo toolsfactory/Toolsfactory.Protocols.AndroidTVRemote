@@ -38,6 +38,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
 
             var rcOptions = new RemoteControlClientOptions(pairingConfig!.DeviceHostName, CertificateBuilder.LoadCertificateFromPEM(pairingConfig.Certificate), LoggerFactory: factory);
             var rcClient = new RemoteControlClient(rcOptions);
+            rcClient.RemoteConfigurationChanged += RcClient_RemoteConfigurationChanged;
 
             await rcClient.ConnectAsync();
 
@@ -91,5 +92,18 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             }
         }
 
+        private static void RcClient_RemoteConfigurationChanged(object? sender, EventArgs e)
+        {
+            var rcClient = (RemoteControlClient?) sender;
+            if (rcClient?.RemoteDeviceInformation == null) return;
+            Console.WriteLine();
+            AnsiConsole.MarkupLine("[bold]Remote Device Configuration [/]");
+            AnsiConsole.MarkupLine($"Vendor:        {rcClient.RemoteDeviceInformation.Vendor}");
+            AnsiConsole.MarkupLine($"Model:         {rcClient.RemoteDeviceInformation.Model}");
+            AnsiConsole.MarkupLine($"Version:       {rcClient.RemoteDeviceInformation.Version}");
+            AnsiConsole.MarkupLine($"PackageName:   {rcClient.RemoteDeviceInformation.PackageName}");
+            AnsiConsole.MarkupLine($"AppVersion:    {rcClient.RemoteDeviceInformation.AppVersion}");
+            Console.WriteLine();
+        }
     }
 }

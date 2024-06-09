@@ -144,8 +144,9 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
             if(message.Status != ProtoBuf.OuterMessage.Types.Status.Ok)
             {
 
-               if (_Logging) _Logger!.LogError($"Error processing message: {message.Status}");
-                return;
+               if (_Logging) 
+                    _Logger!.LogError($"Error processing message: {message.Status}");
+               return;
             }
 
             if (message.PairingRequestAck != null)
