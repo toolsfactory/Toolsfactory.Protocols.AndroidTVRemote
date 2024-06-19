@@ -18,9 +18,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
         {
             var logger = factory.CreateLogger("Program");
             var parser = CreateCommandLineParser();
-
-            // await parser.InvokeAsync(args);
-            await parser.InvokeAsync("--help");
+            await parser.InvokeAsync(args);
             // await parser.InvokeAsync("interactivepairing");
             // await parser.InvokeAsync("pair --host 172.16.14.142 --file c://temp//test.apair");
             // await parser.InvokeAsync("scan");
