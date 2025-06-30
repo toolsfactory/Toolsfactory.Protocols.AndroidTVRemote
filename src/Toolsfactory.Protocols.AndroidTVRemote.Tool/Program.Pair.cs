@@ -23,7 +23,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
 
         private static async Task HandlePairingCommandAsync(string host, string file)
         {
-            using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole().AddFilter(null, LogLevel.Debug));
+            using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole().AddFilter(null, LogLevel.Debug).AddConsole());
             ILogger logger = factory.CreateLogger("Program");
 
             WriteHeadline("Manual Pairing");

@@ -28,7 +28,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         #region Properties
         public string ServerAddress { get; init; }
         public UInt16 Port { get; init; }
-        public SslProtocols Protocol { get; init; } = SslProtocols.Tls12;
+        public SslProtocols Protocol { get; init; } = SslProtocols.Tls13;
         /// <summary>
         /// Indicates whether the client is connected to the server on TCP level
         /// </summary>
@@ -120,11 +120,37 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
             if (ClientCertificate == null)
                 throw new PairingException($"Set a client certificate before requesting a secure stream!");
 
-            var callback = new RemoteCertificateValidationCallback((sender, certificate, chain, error) => { return true; });
-            _Client = new TcpClient();
-            await _Client.ConnectAsync(ServerAddress, Port);
-            _Stream = new SslStream(_Client.GetStream(), false, callback, null);
-            _Stream.AuthenticateAsClient(ServerAddress, new X509CertificateCollection() { ClientCertificate }, Protocol, false);
+            var sslOptions = new SslClientAuthenticationOptions
+            {
+                TargetHost = ServerAddress,
+                AllowRenegotiation = true,
+                ApplicationProtocols = new List<SslApplicationProtocol> { SslApplicationProtocol.Http2 },
+                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
+                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+                {
+                    // Android TV 14 erfordert möglicherweise lockerere Validierung
+                    return true; // Nur für Tests!
+                }
+            };
+
+            try
+            {
+                _Client = new TcpClient();
+                await _Client.ConnectAsync(ServerAddress, Port);
+                _Stream = new SslStream(_Client.GetStream(), false);
+                //_Stream.AuthenticateAsClient(ServerAddress, new X509CertificateCollection() { ClientCertificate }, SslProtocols.Tls12 | SslProtocols.Tls13, false);
+                _Stream.AuthenticateAsClient(sslOptions);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        private bool VaildateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            return true;
         }
 
         private async Task HandleClientAsync()

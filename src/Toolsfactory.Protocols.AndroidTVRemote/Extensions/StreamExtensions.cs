@@ -1,4 +1,5 @@
 ﻿using Google.Protobuf;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -41,16 +42,21 @@ namespace System.IO
             return bytes;
         }
 
-        public static async Task WriteProtoBufMessageAsync(this Stream stream, Google.Protobuf.IMessage message, CancellationToken token)
+        public static async Task WriteProtoBufMessageAsync(this Stream stream, Google.Protobuf.IMessage message, CancellationToken token, ILogger logger = null)
         {
+            if (logger != null)
+                logger.LogDebug($"Sent: {message}  -  {message.ToByteArray().ToHex()}");
             var data = message.ToByteArray();
             var len = ((ulong)data.Length).ToVarIntBytes();
             await stream.WriteAsync(len, 0, len.Length, token);
             await stream.WriteAsync(data, 0, data.Length, token);
             await stream.FlushAsync(token);
         }
-        public static async Task WriteMessageAsync(this Stream stream, byte[] message, CancellationToken token)
+
+        public static async Task WriteMessageAsync(this Stream stream, byte[] message, CancellationToken token, ILogger logger = null)
         {
+            if (logger != null)
+                logger.LogDebug($"Sent: {message.ToHex()}");
             await stream.WriteAsync([(byte) message.Length], 0, 1, token);
             await stream.WriteAsync(message, 0, message.Length, token);
             await stream.FlushAsync(token);

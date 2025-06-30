@@ -173,25 +173,25 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         private async Task SendPairingMessageAsync()
         {
             var msg = PairingMessageBuilder.BuildPairingMessage("atvremote", "demo");
-            await _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token);
+            await _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token, _Logger);
         }
 
         private void SendPairingOptionMessage()
         {
             var msg = PairingMessageBuilder.BuildPairingOptionMessage();
-            _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token);
+            _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token, _Logger);
         }
 
         private void SendConfigurationMessage()
         {
             var msg = PairingMessageBuilder.BuildConfigurationMessage();
-            _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token);
+            _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token, _Logger);
         }
 
         private async Task SendPairingSecretMessageAsync(byte[] secret)
         {
             var msg = PairingMessageBuilder.BuildPairingSecretMessage(secret);
-            await _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token);
+            await _Stream!.WriteProtoBufMessageAsync(msg, _Cts.Token, _Logger);
         }
 
         private byte[] CalculatePairingCodeHash(byte[] nonce)
