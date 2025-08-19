@@ -8,17 +8,18 @@ using Org.BouncyCastle.Math;
 using Org.BouncyCastle.OpenSsl;
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.X509;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Toolsfactory.Protocols.AndroidTVRemote
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     public sealed class CertificateBuilder
     {
-        Org.BouncyCastle.X509.X509Certificate _Certificate;
-        private AsymmetricKeyParameter _PrivateKey;
+        private readonly Org.BouncyCastle.X509.X509Certificate _certificate;
+        private readonly AsymmetricKeyParameter _privateKey;
 
+        #region Constructors
         public CertificateBuilder(CertificateNameOptions nameOptions, CertificateOptions certificateOptions)
         {
             var random = GenerateSecureRandom();
@@ -38,53 +39,48 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
             if (certificateOptions.ExtendedClientAuthentication)
                 AddExtendedClientAuthentication(certificateGenerator);
 
-            _Certificate = certificateGenerator.Generate(signatureFactory);
-            _PrivateKey = issuerKeyPair.Private;
+            _certificate = certificateGenerator.Generate(signatureFactory);
+            _privateKey = issuerKeyPair.Private;
         }
+        #endregion
 
-        public Org.BouncyCastle.X509.X509Certificate Certificate => _Certificate;
-
-        public AsymmetricKeyParameter PrivateKey => _PrivateKey;
-
+        #region PEM Export Methods
         public string CertificateAsPEM()
         {
-            using (var textWriter = new StringWriter())
+            using var textWriter = new StringWriter();
+            using (PemWriter pemWriter = new PemWriter(textWriter))
             {
-                using (PemWriter pemWriter = new PemWriter(textWriter))
-                {
-                    pemWriter.WriteObject(_Certificate);
-                }
-                return textWriter.ToString();
+                pemWriter.WriteObject(_certificate);
             }
+            return textWriter.ToString();
         }
 
         public string PrivateKeyAsPEM()
         {
-            var pkcs8 = new Pkcs8Generator(_PrivateKey);
-            using (var textWriter = new StringWriter())
+            var pkcs8 = new Pkcs8Generator(_privateKey);
+            using var textWriter = new StringWriter();
+            using (PemWriter pemWriter = new PemWriter(textWriter))
             {
-                using (PemWriter pemWriter = new PemWriter(textWriter))
-                {
-                    pemWriter.WriteObject(pkcs8);
-                }
-                return textWriter.ToString();
+                pemWriter.WriteObject(pkcs8);
             }
+            return textWriter.ToString();
         }
+        #endregion
 
-        #region private helpers
+        #region Private Helpers
         private static BigInteger GenerateSerial(SecureRandom random)
         {
-            // serial number is required, generate it randomly
+            // Serial number is required, generate it randomly
             byte[] serial = new byte[20];
             random.NextBytes(serial);
             serial[0] = 1;
-            var bigSerial = new Org.BouncyCastle.Math.BigInteger(serial);
+            var bigSerial = new BigInteger(serial);
             return bigSerial;
         }
 
         private static void AddExtendedClientAuthentication(X509V3CertificateGenerator certificateGenerator)
         {
-            var keyUsage = new KeyUsage(KeyUsage.KeyEncipherment);
+            var keyUsage = new KeyUsage(KeyUsage.DigitalSignature | KeyUsage.KeyEncipherment);
             certificateGenerator.AddExtension(X509Extensions.KeyUsage, false, keyUsage.ToAsn1Object());
 
             var extendedKeyUsage = new ExtendedKeyUsage(new[] { KeyPurposeID.id_kp_clientAuth });
@@ -134,51 +130,33 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         }
         #endregion
 
-        #region static helpers
+        #region Static Helpers
         public static X509Certificate2 LoadCertificateFromPEM(string pem)
         {
-            using (var textReader = new StringReader(pem))
+            using var textReader = new StringReader(pem);
+            using PemReader reader = new PemReader(textReader);
+            Org.BouncyCastle.X509.X509Certificate certificate = null!;
+            AsymmetricKeyParameter privateKey = null!;
+
+            while (reader.ReadPemObject() is { } read)
             {
-                using (PemReader reader = new PemReader(textReader))
+                switch (read.Type)
                 {
-                    Org.BouncyCastle.Utilities.IO.Pem.PemObject read;
-                    Org.BouncyCastle.X509.X509Certificate certificate = null;
-                    AsymmetricKeyParameter privateKey = null;
-
-                    while ((read = reader.ReadPemObject()) != null)
-                    {
-                        switch (read.Type)
-                        {
-                            case "CERTIFICATE":
-                                {
-                                    certificate = new Org.BouncyCastle.X509.X509Certificate(read.Content);
-                                }
-                                break;
-
-                            case "PRIVATE KEY":
-                                {
-                                    privateKey = PrivateKeyFactory.CreateKey(read.Content);
-                                }
-                                break;
-
-                            default:
-                                throw new NotSupportedException(read.Type);
-                        }
-                    }
-
-                    if (certificate == null || privateKey == null)
-                    {
-                        throw new Exception("Unable to load certificate with the private key from the PEM!");
-                    }
-
-                    return GetX509CertificateWithPrivateKey(certificate, privateKey);
+                    case "CERTIFICATE": certificate = new Org.BouncyCastle.X509.X509Certificate(read.Content); break;
+                    case "PRIVATE KEY": privateKey = PrivateKeyFactory.CreateKey(read.Content); break;
+                    default: throw new NotSupportedException(read.Type);
                 }
             }
+
+            if (certificate == null || privateKey == null)
+                throw new Exception("Unable to load certificate with the private key from the PEM!");
+
+            return GetX509CertificateWithPrivateKey(certificate, privateKey);
         }
 
         private static X509Certificate2 GetX509CertificateWithPrivateKey(Org.BouncyCastle.X509.X509Certificate bouncyCastleCert, AsymmetricKeyParameter privateKey)
         {
-            // this workaround is needed to fill in the Private Key in the X509Certificate2
+            // This workaround is needed to fill in the Private Key in the X509Certificate2
             string alias = bouncyCastleCert.SubjectDN.ToString();
             Pkcs12Store store = new Pkcs12StoreBuilder().Build();
 
@@ -186,7 +164,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
             store.SetCertificateEntry(alias, certEntry);
 
             AsymmetricKeyEntry keyEntry = new AsymmetricKeyEntry(privateKey);
-            store.SetKeyEntry(alias, keyEntry, new X509CertificateEntry[] { certEntry });
+            store.SetKeyEntry(alias, keyEntry, [certEntry]);
 
             byte[] certificateData;
             string password = Guid.NewGuid().ToString();
@@ -202,19 +180,23 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         #endregion
     }
 
-public record CertificateNameOptions(
+    #region Record Definitions
+    public abstract record CertificateNameOptions(
         string Name,
         string Country = "",
         string State = "",
         string Locality = "",
         string Organisation = "",
         string OrganisationUnit = "",
-        string Email = "");
+        string Email = ""
+    );
 
-    public record CertificateOptions(
+    public abstract record CertificateOptions(
         DateTime NotBefore,
         DateTime NotAfter,
         bool ExtendedClientAuthentication = true,
         int KeyStrength = 2048,
-        string SignatureAlgorithm = "SHA256WITHRSA");
+        string SignatureAlgorithm = "SHA256WITHRSA"
+    );
+    #endregion
 }

@@ -2,8 +2,7 @@
 
 namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
 {
+    [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(PairingConfiguration))]
-    public partial class PairingConfigurationContext : JsonSerializerContext
-    {
-    }
+    internal partial class PairingConfigurationContext : JsonSerializerContext;
 }

@@ -1,19 +1,9 @@
-﻿using System;
-using System.Linq;
-
-namespace Toolsfactory.Protocols.AndroidTVRemote.Events
+﻿namespace Toolsfactory.Protocols.AndroidTVRemote.Events
 {
-    public class VolumeChangedEventArgs : EventArgs
+    public class VolumeChangedEventArgs(uint volume, uint maxVolume, bool muted) : EventArgs
     {
-        public bool Muted { get; init; }
-        public uint Volume { get; init; }
-        public uint MaxVolume { get; init; }
-
-        public VolumeChangedEventArgs(uint volume, uint maxVolume, bool muted)
-        {
-            Volume = volume;
-            MaxVolume = maxVolume;
-            Muted = muted;
-        }
+        public bool Muted { get; init; } = muted;
+        public uint Volume { get; init; } = volume;
+        public uint MaxVolume { get; init; } = maxVolume;
     }
 }

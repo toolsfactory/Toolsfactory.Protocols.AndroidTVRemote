@@ -1,21 +1,16 @@
-﻿using Microsoft.Extensions.Logging;
-using Spectre.Console;
-using System;
-using System.Collections.Generic;
+﻿using Spectre.Console;
 using System.CommandLine;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
 {
-    internal partial class Program
+    internal static partial class Program
     {
         private static Command BuildPairingCommand()
         {
-            var host = new Option<string>("--host", "The device (ip or hostname) to pair with") { IsRequired = true };
-            var file = new Option<string>("--file", "The to store the configuration in") { IsRequired = true };
+            var host = new Option<string>("--host", "The device (IP or hostname) to pair with") { IsRequired = true };
+            var file = new Option<string>("--file", "The file to store the pairing configuration (.apair) in") { IsRequired = true };
             var command = new Command("pair", "Pair a remote control with the Android device") { host, file };
             command.SetHandler(async (hostValue, fileValue) => await HandlePairingCommandAsync(hostValue, fileValue), host, file);
             return command;
@@ -23,50 +18,88 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
 
         private static async Task HandlePairingCommandAsync(string host, string file)
         {
-            using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole().AddFilter(null, LogLevel.Debug).AddConsole());
-            ILogger logger = factory.CreateLogger("Program");
-
             WriteHeadline("Manual Pairing");
-
             AnsiConsole.MarkupLine($"Pairing with [yellow]{host}[/]");
-            var pairingOptions = new PairingClientOptions(host, null, LoggerFactory: factory);
-            var tvPairingClient = new PairingClient(pairingOptions);
+
+            await RunPairingScriptsAsync(host, file);
+        }
+        
+        private static async Task RunPairingScriptsAsync(string host, string? outputFile = null)
+        {
+            if (!CheckPythonRequirements())
+                return;
+
             try
             {
-                await tvPairingClient.PreparePairingAsync();
-                var ok = await tvPairingClient.StartPairingAsync ();
-                if (!ok)
+                var friendlyName = AnsiConsole.Ask<string>("Enter a friendly name for this device:");
+                var deviceId     = AnsiConsole.Ask<string>("Enter the device ID:");
+                var file         = string.IsNullOrWhiteSpace(outputFile)
+                    ? AnsiConsole.Ask<string>("Enter the output file name (.apair):", "device.apair")
+                    : outputFile;
+
+                // 1) Run pair_android14.py
+                var pairPsi = new ProcessStartInfo
                 {
-                    AnsiConsole.MarkupLine("[bold red]Pairing Init failed[/]");
-                    return;
+                    FileName = "python",
+                    Arguments = $"\"{ScriptPath}\" {host} --certfile {CertPath} --keyfile {KeyPath} --name \"{friendlyName}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = false,
+                    RedirectStandardError = false,
+                    RedirectStandardInput = false,
+                    CreateNoWindow = false
+                };
+
+                using (var pairProc = Process.Start(pairPsi))
+                {
+                    if (pairProc == null)
+                        throw new PairingException("Failed to start Python process for pairing.");
+
+                    await pairProc.WaitForExitAsync();
+                    if (pairProc.ExitCode != 0)
+                        throw new PairingException($"Python pairing failed (exit code {pairProc.ExitCode})");
                 }
-                Console.WriteLine("Pairing initiated.");
-                Console.Write("Please provide the secret: ");
-                var input = Console.ReadLine();
-                var status = await tvPairingClient.FinishPairingAsync(input);
+
+                // 2) Run rewrite_key_to_pkcs8.py
+                var rewritePsi = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = $"\"{RewritePath}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+                using (var rewriteProc = Process.Start(rewritePsi))
+                {
+                    if (rewriteProc == null)
+                        throw new PairingException("Failed to start Python process for key rewrite.");
+
+                    string stdout = await rewriteProc.StandardOutput.ReadToEndAsync();
+                    string stderr = await rewriteProc.StandardError.ReadToEndAsync();
+                    await rewriteProc.WaitForExitAsync();
+
+                    if (!string.IsNullOrWhiteSpace(stdout)) AnsiConsole.WriteLine(stdout.Trim());
+                    if (!string.IsNullOrWhiteSpace(stderr)) AnsiConsole.WriteLine(stderr.Trim());
+                    if (rewriteProc.ExitCode != 0)
+                        throw new PairingException($"Key rewrite failed (exit code {rewriteProc.ExitCode})");
+                }
+
+                var certPem = await File.ReadAllTextAsync(CertPath);
+                var keyPem  = await File.ReadAllTextAsync(KeyPath);
+
+                var config = new PairingConfiguration(friendlyName, deviceId, host, certPem + Environment.NewLine + keyPem);
+                var json = JsonSerializer.Serialize(config, PairingConfigurationContext.Default.PairingConfiguration);
+
+                await File.WriteAllTextAsync(file, json);
+
+                var fullPath = Path.GetFullPath(file);
+                PauseReturnToMenu($"[green]Pairing configuration saved to {fullPath}[/]");
             }
-            catch (Exception ex)
+            finally
             {
-                AnsiConsole.MarkupLine("[bold red]Pairing failed[/]");
-                AnsiConsole.MarkupLine($"[red]{ex.Message}[/]");
-                return;
+                // Always delete temp files, even if an exception occurs above
+                CleanupTemporaryFiles();
             }
-
-            AnsiConsole.MarkupLine("[green]Pairing successful[/]");
-
-            if (!AnsiConsole.Confirm("Continue?"))
-            {
-                AnsiConsole.MarkupLine("Ok... :(");
-                return;
-            }
-            var name = AnsiConsole.Ask<string>("Device name?");
-            var id = AnsiConsole.Ask<string>("Device id?");
-
-            var config = new PairingConfiguration(name, id, host, tvPairingClient.ClientCertificatePEM+Environment.NewLine+tvPairingClient.PrivateKeyPEM);
-            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(file, json);
-            AnsiConsole.MarkupLine($"Certificate saved to [yellow]{file}[/]");
         }
-
     }
 }

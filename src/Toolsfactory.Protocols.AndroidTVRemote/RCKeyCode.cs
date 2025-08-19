@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace Toolsfactory.Protocols.AndroidTVRemote
 {
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    [SuppressMessage("ReSharper", "UnusedMember.Global")]
+    [SuppressMessage("ReSharper", "IdentifierTypo")]
     public enum RCKeyCode
     {
         Key_UNKNOWN = 0,
@@ -296,17 +295,17 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         Key_DPAD_UP_RIGHT   = 270,
         // Directional Pad Down-Right
         Key_DPAD_DOWN_RIGHT = 271,
-        // Skip forward media key
+        // Skip-forward media key
         Key_MEDIA_SKIP_FORWARD = 272,
-        // Skip backward media key
+        // Skip-backward media key
         Key_MEDIA_SKIP_BACKWARD = 273,
-        // Step forward media key.
+        // Step-forward media key.
         // Steps media forward one from at a time.
         Key_MEDIA_STEP_FORWARD = 274,
-        // Step backward media key.
+        // Step-backward media key.
         // Steps media backward one from at a time.
         Key_MEDIA_STEP_BACKWARD = 275,
-        // Put device to sleep unless a wakelock is held.
+        // Put the device to sleep unless a wakelock is held.
         Key_SOFT_SLEEP = 276,
         // Cut key.
         Key_CUT = 277,
@@ -330,7 +329,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         Key_THUMBS_UP = 286,
         // Thumbs down key. Apps can use this to let user downvote content.
         Key_THUMBS_DOWN = 287,
-        // Used to switch current account that is consuming content.
+        // Used to switch current account consuming content.
         // May be consumed by system to switch current viewer profile.
         Key_PROFILE_SWITCH = 288,
         Key_VIDEO_APP_1 = 289,

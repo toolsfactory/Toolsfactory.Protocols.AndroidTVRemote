@@ -1,11 +1,7 @@
-﻿using System;
-using System.Linq;
-
-namespace Toolsfactory.Protocols.AndroidTVRemote.Events
+﻿namespace Toolsfactory.Protocols.AndroidTVRemote.Events
 {
-    public class AppLaunchedEventArgs : EventArgs
+    public class AppLaunchedEventArgs(string appPackage) : EventArgs
     {
-        public string AppPackage { get; init; }
-        public AppLaunchedEventArgs(string appPackage) => AppPackage = appPackage;
+        public string AppPackage { get; init; } = appPackage;
     }
 }

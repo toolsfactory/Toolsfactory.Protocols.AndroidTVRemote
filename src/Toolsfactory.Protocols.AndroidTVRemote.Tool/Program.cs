@@ -4,31 +4,22 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Help;
 using System.CommandLine.Parsing;
-using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Zeroconf;
 
 namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
 {
-    internal partial class Program
+    internal static partial class Program
     {
-        private static ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddDebug().AddFilter(null, LogLevel.Debug));
+        private static readonly ILoggerFactory Factory = LoggerFactory.Create(builder => builder.AddDebug().AddFilter(null, LogLevel.Debug));
+        private const string AppDisplayName = "Toolsfactory Android TV Remote";
         static async Task Main(string[] args)
         {
-            var logger = factory.CreateLogger("Program");
+            // ReSharper disable once UnusedVariable
+            var logger = Factory.CreateLogger("Program");
             var parser = CreateCommandLineParser();
             await parser.InvokeAsync(args);
-
-            // await parser.InvokeAsync("--help");
-            // await parser.InvokeAsync("interactivepairing");
-            // await parser.InvokeAsync("pair --host 172.16.14.142 --file c://temp//test.apair");
-            // await parser.InvokeAsync("scan");
-            // await parser.InvokeAsync("interactive  --config teststicklab.apair ");
-            // await parser.InvokeAsync("sendkey DPAD_DOWN --config c://temp//test.apair ");
         }
 
-        #region Build Command Line arguments
+        #region Build Command Line Arguments
         private static Parser CreateCommandLineParser()
         {
             RootCommand rootCommand = BuildRootCommand();
@@ -40,41 +31,31 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                     _ =>
                         HelpBuilder.Default
                             .GetLayout()
-                            .Prepend(_ => AnsiConsole.Write(new FigletText("Michael's AndroidTV Tool"))
+                            .Prepend(_ => AnsiConsole.Write(new FigletText($"{AppDisplayName}"))
                     ));
             })
             .Build();
         }
         private static RootCommand BuildRootCommand()
         {
-            var rootCommand = new RootCommand();
-            rootCommand.SetHandler(HandleMenuCommandAsync);
-            rootCommand.Add(BuildMenuCommand());
-            rootCommand.Add(BuildPairingCommand());
-            rootCommand.Add(BuildSendKeyCommand());
-            rootCommand.Add(BuildInteractiveCommand());
-            rootCommand.Add(BuildInteractivePairingCommand());
-            rootCommand.Add(BuildScanCommand());
-            return rootCommand;
+            var root = new RootCommand($"{AppDisplayName}\n\n" +
+                                       "Commands:\n" +
+                                       "  menu                Open the interactive menu\n" +
+                                       "  scan                Discover Android TV devices on the network\n" +
+                                       "  pair                Pair a remote with a device (.apair)\n" +
+                                       "  interact            Control a paired device (interactive)\n" +
+                                       "  help                Show detailed help\n");
+            root.SetHandler(HandleMenuCommandAsync);
+            root.Add(BuildMenuCommand());
+            root.Add(BuildPairingCommand());
+            root.Add(BuildInteractiveCommand());
+            root.Add(BuildInteractivePairingCommand());
+            root.Add(BuildScanCommand());
+            return root;
         }
         #endregion
-
-        #region helpers
-        private static async Task FindAndroidTVDevicesAsync()
-        {
-            var result = await ZeroconfResolver.ResolveAsync("_androidtvremote2._tcp.local.");
-            if (result.Count == 0)
-            {
-                AnsiConsole.MarkupLine("[bold red]No devices found[/]");
-                return;
-            }
-            foreach (var host in result)
-            {
-                var ip = (host.IPAddress + "      ").Substring(0, 15);
-                AnsiConsole.MarkupLine($"[yellow]{ip}[/] - [green]{host.DisplayName}[/]");
-            }
-        }
-
+        
+        #region Helpers
         private static void WriteHeadline(string text)
         {
             Console.Clear();

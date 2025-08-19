@@ -1,8 +1,6 @@
-﻿using System;
-using System.Linq;
-namespace System
+﻿// ReSharper disable GrammarMistakeInComment
+namespace Toolsfactory.Protocols.AndroidTVRemote.Extensions
 {
-
     /// <summary>
     /// Helpers for Google Protocol Buffers Varint encoding/decoding.
     /// </summary>
@@ -125,10 +123,10 @@ namespace System
         }
 
         /// <summary>
-        /// Returns 16-bit usigned value from varint encoded array of bytes.
+        /// Returns 16-bit unsigned value from varint encoded array of bytes.
         /// </summary>
         /// <param name="bytes">Varint encoded array of bytes.</param>
-        /// <returns>16-bit usigned value</returns>
+        /// <returns>16-bit unsigned value</returns>
         public static ushort ToUInt16(this byte[] bytes)
         {
             return (ushort) InternalConvertToUInt64(bytes, 16);
@@ -204,7 +202,7 @@ namespace System
                 result |= (byteValue & 0x7f) << shift;
 
                 if (shift > cntBits)
-                    throw new ArgumentOutOfRangeException("bytes", "Byte array too large.");
+                    throw new ArgumentOutOfRangeException(nameof(bytes), "Byte array too large.");
 
                 if ((byteValue & 0x80) != 0x80)
                     return result;
