@@ -53,7 +53,11 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         #endregion
 
         #region Connection management
-        public async Task ConnectAsync() => await InitiateConnectionAsync();
+        public async Task ConnectAsync(CancellationToken cancellationToken)
+        {
+            Cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            await InitiateConnectionAsync();
+        }
 
         protected override void Close()
         {

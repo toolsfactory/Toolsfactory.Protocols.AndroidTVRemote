@@ -34,6 +34,12 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                 PauseReturnToMenu("[red]Python dependencies could not be installed.[/]");
                 return;
             }
+            
+            if (!await ValidateHostAsync(host))
+            {
+                PauseReturnToMenu("[red]Invalid IP address or hostname. Please check your input.[/]");
+                return;
+            }
 
             try
             {
@@ -47,13 +53,17 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                 await RunKeyRewriteProcess();
                 await SavePairingConfiguration(friendlyName, deviceId, host, file);
             }
-            catch (PairingException)
+            catch (PairingAttemptsException)
             {
-                throw;
+                PauseReturnToMenu();
+            }
+            catch (PairingException ex)
+            {
+                PauseReturnToMenu($"[red]Pairing error: {ex.Message}[/]");
             }
             catch (Exception ex)
             {
-                throw new PairingException($"Unexpected pairing error: {ex.Message}");
+                PauseReturnToMenu($"[red]Unexpected pairing error: {ex.Message}[/]");
             }
             finally
             {
@@ -92,6 +102,9 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                 // Ignore exceptions from I/O tasks
             }
 
+            if (process.ExitCode == 1)
+                throw new PairingAttemptsException("Pairing was cancelled due to incorrect PIN attempts.");
+
             if (process.ExitCode != 0)
                 throw new PairingException($"Python pairing failed (exit code {process.ExitCode})");
         }
@@ -112,6 +125,25 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             var errorOutput = await process.StandardError.ReadToEndAsync();
             if (!string.IsNullOrWhiteSpace(errorOutput))
                 Console.Write(errorOutput);
+        }
+        
+        private static async Task<bool> ValidateHostAsync(string host)
+        {
+            if (!System.Net.IPAddress.TryParse(host, out _))
+                return false;
+
+            if (host.All(char.IsDigit)) // Prevent 32-bit integer inputs
+                return false;
+
+            try
+            {
+                var addresses = await System.Net.Dns.GetHostAddressesAsync(host);
+                return addresses.Length > 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static async Task RunKeyRewriteProcess()

@@ -41,6 +41,8 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                 .Select(item => new DeviceItem(item.IPAddress, item.DisplayName))
                 .ToList();
 
+            devices.Add(new DeviceItem("", "Go back to main menu"));
+
             var selected = AnsiConsole.Prompt(
                 new SelectionPrompt<DeviceItem>()
                     .Title("What device do you want to pair with?")
@@ -49,6 +51,8 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                     .AddChoices(devices)
                     .UseConverter(d => $"{d.IP} - {d.Name}")
             );
+
+            if (string.IsNullOrEmpty(selected.IP)) return;
 
             var host = selected.IP;
             AnsiConsole.MarkupLine($"Pairing with [yellow]{host}[/]");
@@ -116,7 +120,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
         
                 if (process?.ExitCode != 0)
                 {
-                    AnsiConsole.MarkupLine("[red]Python is not installed or not available in PATH.[/]");
+                    PauseReturnToMenu("[red]Python is not installed or not available in PATH.[/]");
                     return false;
                 }
 
@@ -124,7 +128,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             }
             catch (Exception)
             {
-                AnsiConsole.MarkupLine("[red]Python could not be found.[/]");
+                PauseReturnToMenu("[red]Python could not be found.[/]");
                 return false;
             }
         }

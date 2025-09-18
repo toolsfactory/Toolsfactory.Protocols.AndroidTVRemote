@@ -81,15 +81,35 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             );
             var rcClient = new RemoteControlClient(rcOptions);
 
-            var configReceived = new TaskCompletionSource<bool>();
-            rcClient.RemoteConfigurationChanged += (s, e) =>
+            try
             {
-                RcClient_RemoteConfigurationChanged(s, e);
-                configReceived.TrySetResult(true);
-            };
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        
+                var configReceived = new TaskCompletionSource<bool>();
+                rcClient.RemoteConfigurationChanged += (s, e) =>
+                {
+                    RcClient_RemoteConfigurationChanged(s, e);
+                    configReceived.TrySetResult(true);
+                };
 
-            await rcClient.ConnectAsync();
-            await configReceived.Task;
+                AnsiConsole.MarkupLine("[grey]Connecting...[/]");
+                await rcClient.ConnectAsync(cts.Token);
+        
+                AnsiConsole.MarkupLine("[grey]Waiting for device configuration...[/]");
+                await configReceived.Task.WaitAsync(cts.Token);
+        
+                AnsiConsole.MarkupLine("[green]Connected successfully![/]");
+            }
+            catch (OperationCanceledException)
+            {
+                PauseReturnToMenu("[red]Connection timeout. Please check if the device is reachable and the pairing file is valid.[/]");
+                return;
+            }
+            catch (Exception ex)
+            {
+                PauseReturnToMenu($"[red]Connection failed: {ex.Message}[/]");
+                return;
+            }
             
             AnsiConsole.MarkupLine("[yellow]Press arrow keys, Enter, Backspace, or Home to navigate.[/]");
             AnsiConsole.MarkupLine("[yellow]Press H to see a full list of available commands.[/]");
@@ -214,7 +234,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             AnsiConsole.WriteLine("Page Up: MEDIA_NEXT");
             AnsiConsole.WriteLine("C: MEDIA_RECORD");
             AnsiConsole.WriteLine("Y: YOUTUBE");
-            AnsiConsole.WriteLine("L: WAIPUTHEK");
+            AnsiConsole.WriteLine("W: WAIPUTHEK");
             AnsiConsole.WriteLine("T: TV");
             AnsiConsole.WriteLine("P: GUIDE");
             AnsiConsole.WriteLine("M: MENU");

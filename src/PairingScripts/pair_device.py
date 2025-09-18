@@ -37,7 +37,7 @@ async def pair_and_connect(host: str, certfile: str, keyfile: str, client_name: 
         except InvalidAuth:
             attempts += 1
             if attempts >= max_attempts:
-                print("Pairing unsuccessful – too many incorrect PIN attempts.")
+                print("Pairing unsuccessful. Too many incorrect PIN attempts.")
                 sys.exit(1)
             else:
                 print("Invalid PIN, please try again")
