@@ -15,6 +15,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             return command;
         }
         
+        #region Interactive Command Handler
         [SuppressMessage("ReSharper", "SeparateLocalFunctionsWithJumpStatement")]
         private static async Task HandleInteractiveCommandAsync(string config)
         {
@@ -102,111 +103,131 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             do
             {
                 cki = Console.ReadKey(true);
-
-                switch (cki.Key)
+                
+                bool actionResult = cki.Key switch
                 {
                     // arrows
-                    case ConsoleKey.UpArrow:    await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_UP);    break;
-                    case ConsoleKey.DownArrow:  await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_DOWN);  break;
-                    case ConsoleKey.LeftArrow:  await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_LEFT);  break;
-                    case ConsoleKey.RightArrow: await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_RIGHT); break;
+                    ConsoleKey.UpArrow => await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_UP),
+                    ConsoleKey.DownArrow => await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_DOWN),
+                    ConsoleKey.LeftArrow => await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_LEFT),
+                    ConsoleKey.RightArrow => await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_RIGHT),
 
                     // basic controls
-                    case ConsoleKey.Enter:      await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_CENTER); break;
-                    case ConsoleKey.Backspace:  await SendKeyAsync(rcClient, RCKeyCode.Key_BACK);        break;
-                    case ConsoleKey.Delete:     await SendKeyAsync(rcClient, RCKeyCode.Key_POWER);       break;
-                    case ConsoleKey.Home:       await SendKeyAsync(rcClient, RCKeyCode.Key_HOME);        break;
+                    ConsoleKey.Enter => await SendKeyAsync(rcClient, RCKeyCode.Key_DPAD_CENTER),
+                    ConsoleKey.Backspace => await SendKeyAsync(rcClient, RCKeyCode.Key_BACK),
+                    ConsoleKey.Q => await SendKeyAsync(rcClient, RCKeyCode.Key_POWER),
+                    ConsoleKey.Home => await SendKeyAsync(rcClient, RCKeyCode.Key_HOME),
 
                     // media
-                    case ConsoleKey.Spacebar: await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_PLAY_PAUSE);   break;
-                    case ConsoleKey.R:        await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_REWIND);       break;
-                    case ConsoleKey.F:        await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_FAST_FORWARD); break;
-                    case ConsoleKey.Q:        await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_PREVIOUS);     break;
-                    case ConsoleKey.C:        await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_RECORD);       break;
-                    case ConsoleKey.Tab:      await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_NEXT);         break;
+                    ConsoleKey.Spacebar => await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_PLAY_PAUSE),
+                    ConsoleKey.R => await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_REWIND),
+                    ConsoleKey.F => await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_FAST_FORWARD),
+                    ConsoleKey.PageDown => await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_PREVIOUS),
+                    ConsoleKey.PageUp => await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_NEXT),
+                    ConsoleKey.C => await SendKeyAsync(rcClient, RCKeyCode.Key_MEDIA_RECORD),
 
                     // numbers
-                    case ConsoleKey.D0: await SendKeyAsync(rcClient, RCKeyCode.Key_0); break;
-                    case ConsoleKey.D1: await SendKeyAsync(rcClient, RCKeyCode.Key_1); break;
-                    case ConsoleKey.D2: await SendKeyAsync(rcClient, RCKeyCode.Key_2); break;
-                    case ConsoleKey.D3: await SendKeyAsync(rcClient, RCKeyCode.Key_3); break;
-                    case ConsoleKey.D4: await SendKeyAsync(rcClient, RCKeyCode.Key_4); break;
-                    case ConsoleKey.D5: await SendKeyAsync(rcClient, RCKeyCode.Key_5); break;
-                    case ConsoleKey.D6: await SendKeyAsync(rcClient, RCKeyCode.Key_6); break;
-                    case ConsoleKey.D7: await SendKeyAsync(rcClient, RCKeyCode.Key_7); break;
-                    case ConsoleKey.D8: await SendKeyAsync(rcClient, RCKeyCode.Key_8); break;
-                    case ConsoleKey.D9: await SendKeyAsync(rcClient, RCKeyCode.Key_9); break;
+                    ConsoleKey.D0 => await SendKeyAsync(rcClient, RCKeyCode.Key_0),
+                    ConsoleKey.D1 => await SendKeyAsync(rcClient, RCKeyCode.Key_1),
+                    ConsoleKey.D2 => await SendKeyAsync(rcClient, RCKeyCode.Key_2),
+                    ConsoleKey.D3 => await SendKeyAsync(rcClient, RCKeyCode.Key_3),
+                    ConsoleKey.D4 => await SendKeyAsync(rcClient, RCKeyCode.Key_4),
+                    ConsoleKey.D5 => await SendKeyAsync(rcClient, RCKeyCode.Key_5),
+                    ConsoleKey.D6 => await SendKeyAsync(rcClient, RCKeyCode.Key_6),
+                    ConsoleKey.D7 => await SendKeyAsync(rcClient, RCKeyCode.Key_7),
+                    ConsoleKey.D8 => await SendKeyAsync(rcClient, RCKeyCode.Key_8),
+                    ConsoleKey.D9 => await SendKeyAsync(rcClient, RCKeyCode.Key_9),
 
                     // app shortcuts
-                    case ConsoleKey.W: await SendKeyAsync(rcClient, RCKeyCode.Key_F4);              break;
-                    case ConsoleKey.L: await SendKeyAsync(rcClient, RCKeyCode.Key_F5);              break;
-                    case ConsoleKey.T: await SendKeyAsync(rcClient, RCKeyCode.Key_TV);              break;
-                    case ConsoleKey.P: await SendKeyAsync(rcClient, RCKeyCode.Key_GUIDE);           break;
-                    case ConsoleKey.M: await SendKeyAsync(rcClient, RCKeyCode.Key_MENU);            break;
-                    case ConsoleKey.N: await SendAppLaunchAsync(rcClient, "com.netflix.ninja"); break;
+                    ConsoleKey.W => await SendKeyAsync(rcClient, RCKeyCode.Key_F4),
+                    ConsoleKey.Y => await SendKeyAsync(rcClient, RCKeyCode.Key_F5),
+                    ConsoleKey.T => await SendKeyAsync(rcClient, RCKeyCode.Key_TV),
+                    ConsoleKey.P => await SendKeyAsync(rcClient, RCKeyCode.Key_GUIDE),
+                    ConsoleKey.M => await SendKeyAsync(rcClient, RCKeyCode.Key_MENU),
+                    ConsoleKey.N => await SendAppLaunchAsync(rcClient, "com.netflix.ninja"),
 
-                    case ConsoleKey.H: ShowLegend(); break;
+                    // help
+                    ConsoleKey.H => ShowLegend(),
 
-                    default: AnsiConsole.MarkupLine($"[red]No RCU Key Code connected with the key {cki.Key}[/]"); break;
-                }
+                    // unmapped keys
+                    _ => ShowKeyNotMapped(cki.Key)
+                };
+                
+                if (!actionResult) break;
+
             } while (cki.Key != ConsoleKey.Escape);
         }
-
+        #endregion
+        
         #region Helpers
-        private static async Task SendKeyAsync(RemoteControlClient client, RCKeyCode key)
+        private static async Task<bool> SendKeyAsync(RemoteControlClient client, RCKeyCode key)
         {
             AnsiConsole.MarkupLine($"Sending key [yellow]{key}[/]");
             try
             {
                 await client.PressKeyAsync(key);
+                return true;
             }
             catch (Exception ex)
             {
                 PauseReturnToMenu("[yellow]The connection to the device appears to be lost. Please ensure your " +
                 "device is powered on and connected.[/]");
                 AnsiConsole.WriteException(ex);
+
+                return false;
             }
         }
         
-        private static async Task SendAppLaunchAsync(RemoteControlClient client, string app)
+        private static async Task<bool> SendAppLaunchAsync(RemoteControlClient client, string app)
         {
             AnsiConsole.MarkupLine($"Sending App Launch [yellow]{app}[/]");
             try
             {
                 await client.SendLaunchAppAsync(app);
+                return true;
             }
             catch (Exception ex)
             {
                 PauseReturnToMenu("[yellow]The connection to the device appears to be lost. Please ensure your " +
                                   "device is powered on and connected.[/]");
                 AnsiConsole.WriteException(ex);
+
+                return false;
             }
         }
         #endregion
 
         #region Output Methods
-        private static void ShowLegend()
+        private static bool ShowLegend()
         {
             AnsiConsole.MarkupLine("[bold]Available Commands[/]");
             AnsiConsole.WriteLine("Arrows: DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT");
             AnsiConsole.WriteLine("Numbers: Key_0 through Key_9");
             AnsiConsole.WriteLine("Enter: DPAD_CENTER");
             AnsiConsole.WriteLine("Backspace: BACK");
-            AnsiConsole.WriteLine("Delete: POWER");
+            AnsiConsole.WriteLine("Q: POWER");
             AnsiConsole.WriteLine("Home: HOME");
             AnsiConsole.WriteLine("Space: MEDIA_PLAY_PAUSE");
             AnsiConsole.WriteLine("R: MEDIA_REWIND");
             AnsiConsole.WriteLine("F: MEDIA_FAST_FORWARD");
-            AnsiConsole.WriteLine("Q: MEDIA_PREVIOUS");
+            AnsiConsole.WriteLine("Page Down: MEDIA_PREVIOUS");
+            AnsiConsole.WriteLine("Page Up: MEDIA_NEXT");
             AnsiConsole.WriteLine("C: MEDIA_RECORD");
-            AnsiConsole.WriteLine("Tab: MEDIA_NEXT");
-            AnsiConsole.WriteLine("W: Key_F4");
-            AnsiConsole.WriteLine("L: Key_F5");
+            AnsiConsole.WriteLine("Y: YOUTUBE");
+            AnsiConsole.WriteLine("L: WAIPUTHEK");
             AnsiConsole.WriteLine("T: TV");
             AnsiConsole.WriteLine("P: GUIDE");
             AnsiConsole.WriteLine("M: MENU");
             AnsiConsole.WriteLine("N: NETFLIX");
             AnsiConsole.WriteLine();
+
+            return true;
+        }
+        
+        private static bool ShowKeyNotMapped(ConsoleKey key)
+        {
+            AnsiConsole.MarkupLine($"[red]The key [yellow]{key}[/] is not mapped to any action.[/]");
+            return true;
         }
 
         private static void RcClient_RemoteConfigurationChanged(object? sender, EventArgs e)

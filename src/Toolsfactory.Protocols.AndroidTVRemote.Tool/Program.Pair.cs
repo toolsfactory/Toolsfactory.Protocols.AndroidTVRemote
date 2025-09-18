@@ -29,77 +29,130 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             if (!CheckPythonRequirements())
                 return;
 
+            if (!await EnsurePythonDependenciesAsync())
+            {
+                PauseReturnToMenu("[red]Python dependencies could not be installed.[/]");
+                return;
+            }
+
             try
             {
                 var friendlyName = AnsiConsole.Ask<string>("Enter a friendly name for this device:");
-                var deviceId     = AnsiConsole.Ask<string>("Enter the device ID:");
-                var file         = string.IsNullOrWhiteSpace(outputFile)
+                var deviceId = AnsiConsole.Ask<string>("Enter the device ID:");
+                var file = string.IsNullOrWhiteSpace(outputFile)
                     ? AnsiConsole.Ask<string>("Enter the output file name (.apair):", "device.apair")
                     : outputFile;
 
-                // 1) Run pair_android14.py
-                var pairPsi = new ProcessStartInfo
-                {
-                    FileName = "python",
-                    Arguments = $"\"{ScriptPath}\" {host} --certfile {CertPath} --keyfile {KeyPath} --name \"{friendlyName}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = false,
-                    RedirectStandardError = false,
-                    RedirectStandardInput = false,
-                    CreateNoWindow = false
-                };
-
-                using (var pairProc = Process.Start(pairPsi))
-                {
-                    if (pairProc == null)
-                        throw new PairingException("Failed to start Python process for pairing.");
-
-                    await pairProc.WaitForExitAsync();
-                    if (pairProc.ExitCode != 0)
-                        throw new PairingException($"Python pairing failed (exit code {pairProc.ExitCode})");
-                }
-
-                // 2) Run rewrite_key_to_pkcs8.py
-                var rewritePsi = new ProcessStartInfo
-                {
-                    FileName = "python",
-                    Arguments = $"\"{RewritePath}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-                using (var rewriteProc = Process.Start(rewritePsi))
-                {
-                    if (rewriteProc == null)
-                        throw new PairingException("Failed to start Python process for key rewrite.");
-
-                    string stdout = await rewriteProc.StandardOutput.ReadToEndAsync();
-                    string stderr = await rewriteProc.StandardError.ReadToEndAsync();
-                    await rewriteProc.WaitForExitAsync();
-
-                    if (!string.IsNullOrWhiteSpace(stdout)) AnsiConsole.WriteLine(stdout.Trim());
-                    if (!string.IsNullOrWhiteSpace(stderr)) AnsiConsole.WriteLine(stderr.Trim());
-                    if (rewriteProc.ExitCode != 0)
-                        throw new PairingException($"Key rewrite failed (exit code {rewriteProc.ExitCode})");
-                }
-
-                var certPem = await File.ReadAllTextAsync(CertPath);
-                var keyPem  = await File.ReadAllTextAsync(KeyPath);
-
-                var config = new PairingConfiguration(friendlyName, deviceId, host, certPem + Environment.NewLine + keyPem);
-                var json = JsonSerializer.Serialize(config, PairingConfigurationContext.Default.PairingConfiguration);
-
-                await File.WriteAllTextAsync(file, json);
-
-                var fullPath = Path.GetFullPath(file);
-                PauseReturnToMenu($"[green]Pairing configuration saved to {fullPath}[/]");
+                await RunPythonPairingProcess(host, friendlyName);
+                await RunKeyRewriteProcess();
+                await SavePairingConfiguration(friendlyName, deviceId, host, file);
+            }
+            catch (PairingException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new PairingException($"Unexpected pairing error: {ex.Message}");
             }
             finally
             {
-                // Always delete temp files, even if an exception occurs above
                 CleanupTemporaryFiles();
             }
+        }
+
+        private static async Task RunPythonPairingProcess(string host, string friendlyName)
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "python",
+                Arguments = $"-u \"{ScriptPath}\" {host} --certfile {CertPath} --keyfile {KeyPath} --name \"{friendlyName}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                RedirectStandardInput = false,
+                CreateNoWindow = false
+            };
+
+            using var process = Process.Start(psi);
+            if (process == null)
+                throw new PairingException("Python pairing process could not be started.");
+
+            var outputTask = HandleProcessOutput(process);
+            var errorTask = HandleProcessErrors(process);
+
+            await process.WaitForExitAsync();
+
+            try
+            {
+                await Task.WhenAll(outputTask, errorTask);
+            }
+            catch
+            {
+                // Ignore exceptions from I/O tasks
+            }
+
+            if (process.ExitCode != 0)
+                throw new PairingException($"Python pairing failed (exit code {process.ExitCode})");
+        }
+
+        private static async Task HandleProcessOutput(Process process)
+        {
+            var buffer = new char[1];
+            while (!process.StandardOutput.EndOfStream)
+            {
+                var read = await process.StandardOutput.ReadAsync(buffer, 0, 1);
+                if (read > 0)
+                    Console.Write(buffer[0]);
+            }
+        }
+
+        private static async Task HandleProcessErrors(Process process)
+        {
+            var errorOutput = await process.StandardError.ReadToEndAsync();
+            if (!string.IsNullOrWhiteSpace(errorOutput))
+                Console.Write(errorOutput);
+        }
+
+        private static async Task RunKeyRewriteProcess()
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "python",
+                Arguments = $"\"{RewritePath}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            if (process == null)
+                throw new PairingException("Failed to start Python process for key rewrite.");
+
+            var stdout = await process.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (!string.IsNullOrWhiteSpace(stdout)) AnsiConsole.WriteLine(stdout.Trim());
+            if (!string.IsNullOrWhiteSpace(stderr)) AnsiConsole.WriteLine(stderr.Trim());
+            
+            if (process.ExitCode != 0)
+                throw new PairingException($"Key rewrite failed (exit code {process.ExitCode})");
+        }
+
+        private static async Task SavePairingConfiguration(string friendlyName, string deviceId, string host, string file)
+        {
+            var certPem = await File.ReadAllTextAsync(CertPath);
+            var keyPem = await File.ReadAllTextAsync(KeyPath);
+
+            var config = new PairingConfiguration(friendlyName, deviceId, host, certPem + Environment.NewLine + keyPem);
+            var json = JsonSerializer.Serialize(config, PairingConfigurationContext.Default.PairingConfiguration);
+
+            await File.WriteAllTextAsync(file, json);
+
+            var fullPath = Path.GetFullPath(file);
+            PauseReturnToMenu($"[green]Pairing configuration saved to {fullPath}[/]");
         }
     }
 }

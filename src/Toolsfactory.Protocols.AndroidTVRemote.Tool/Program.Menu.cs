@@ -21,12 +21,10 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
                 AnsiConsole.Clear();
                 WriteHeadline("Menu Mode");
 
-                var choices = new List<string> { "Interactive pairing", "Pair with device", "Interact with device", "Show help", "Exit" };
+                var choices = new List<string> { "Interactive pairing", "Manual pairing", "Interact with device", "Show help", "Exit" };
                 var device = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
                         .Title("What do you want to do?")
-                        .PageSize(10)
-                        .MoreChoicesText("[grey](Move up and down to reveal more devices)[/]")
                         .AddChoices(choices));
 
                 var idx = choices.IndexOf(device);
@@ -44,7 +42,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
         
         private static async Task PairWithDeviceFromMenuAsync()
         {
-            WriteHeadline("Pair with device");
+            WriteHeadline("Manual pairing");
             var host = AnsiConsole.Ask<string>("Enter the device [yellow]IP or hostname[/]:");
             await RunPairingScriptsAsync(host);
         }
@@ -56,7 +54,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
             AnsiConsole.MarkupLine("[bold]How to use this tool[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("- [yellow]Interactive pairing:[/] Discover an Android TV device and create an .apair file with embedded TLS credentials for streamlined future connections.");
-            AnsiConsole.MarkupLine("- [yellow]Pair with device:[/] Manually enter an IP/hostname and create an .apair file (no discovery step).");
+            AnsiConsole.MarkupLine("- [yellow]Manual pairing:[/] Manually enter an IP/hostname and create an .apair file (no discovery step).");
             AnsiConsole.MarkupLine("- [yellow]Interact with device:[/] Use an existing .apair file to connect and send key events (navigation, media controls, app launches).");
             
             PauseReturnToMenu();

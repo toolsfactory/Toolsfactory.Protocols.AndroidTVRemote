@@ -9,7 +9,7 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
     internal static partial class Program
     {
         #region Private Properties
-        private static string ScriptPath  => ResolveScriptPath("pair_android14.py");
+        private static string ScriptPath  => ResolveScriptPath("pair_device.py");
         private static string RewritePath => ResolveScriptPath("rewrite_key_to_pkcs8.py");
         private const string CertPath = "temp-cert.pem";
         private const string KeyPath  = "temp-key.pem";
@@ -101,53 +101,104 @@ namespace Toolsfactory.Protocols.AndroidTVRemote.Tool
         {
             try
             {
-                string unused  = ScriptPath;   // may throw if not found
-            }
-            catch (Exception ex)
-            {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
-                return false;
-            }
-
-            try
-            {
-                string unused = RewritePath;  // may throw if not found
-            }
-            catch (Exception ex)
-            {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
-                return false;
-            }
-
-            if (!IsPythonAvailable())
-            {
-                AnsiConsole.MarkupLine("[red]Python is not available in PATH. Please install Python 3 and ensure 'python' is accessible from the terminal.[/]");
-                return false;
-            }
-
-            return true;
-        }
-        
-        private static bool IsPythonAvailable()
-        {
-            try
-            {
+                // Check if python is available
                 var psi = new ProcessStartInfo
                 {
                     FileName = "python",
                     Arguments = "--version",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
                     UseShellExecute = false,
+                    RedirectStandardOutput = true,
                     CreateNoWindow = true
                 };
 
                 using var process = Process.Start(psi);
                 process?.WaitForExit();
-                return process != null && process.ExitCode == 0;
+        
+                if (process?.ExitCode != 0)
+                {
+                    AnsiConsole.MarkupLine("[red]Python is not installed or not available in PATH.[/]");
+                    return false;
+                }
+
+                return true;
             }
-            catch
+            catch (Exception)
             {
+                AnsiConsole.MarkupLine("[red]Python could not be found.[/]");
+                return false;
+            }
+        }
+        
+        private static async Task<bool> EnsurePythonDependenciesAsync()
+        {
+            try
+            {
+                // Check if androidtvremote2 module is available
+                var checkPsi = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = "-c \"import androidtvremote2; print('androidtvremote2 is available')\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var checkProc = Process.Start(checkPsi);
+                await checkProc!.WaitForExitAsync();
+
+                if (checkProc.ExitCode == 0)
+                    return true;
+
+                AnsiConsole.MarkupLine("[yellow]Installing Python dependencies...[/]");
+
+                // // Check if pip module is available
+                var pipCheckPsi = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = "-m pip --version",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var pipCheck = Process.Start(pipCheckPsi);
+                await pipCheck!.WaitForExitAsync();
+
+                if (pipCheck.ExitCode != 0)
+                {
+                    AnsiConsole.MarkupLine("[red]pip is not available. Please install pip.[/]");
+                    return false;
+                }
+
+                // Install androidtvremote2
+                var installPsi = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = "-m pip install androidtvremote2",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = false
+                };
+
+                using var installProc = Process.Start(installPsi);
+                await installProc!.WaitForExitAsync();
+
+                if (installProc.ExitCode != 0)
+                {
+                    var stderr = await installProc.StandardError.ReadToEndAsync();
+                    AnsiConsole.MarkupLine($"[red]Installation failed: {stderr}[/]");
+                    return false;
+                }
+
+                AnsiConsole.MarkupLine("[green]Python dependencies installed successfully.[/]");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error checking/installing dependencies: {ex.Message}[/]");
                 return false;
             }
         }

@@ -2,7 +2,11 @@
 import asyncio
 import argparse
 import sys
-from androidtvremote2 import AndroidTVRemote, InvalidAuth, CannotConnect
+try:
+    from androidtvremote2 import AndroidTVRemote, InvalidAuth, CannotConnect
+except ModuleNotFoundError as e:
+    print("Missing dependency 'androidtvremote2'. This script is meant to be run via the AndroidTV Remote Tool which auto-installs dependencies.")
+    raise
 
 async def pair_and_connect(host: str, certfile: str, keyfile: str, client_name: str):
     # Create the remote instance (port 6467 is the pairing port by default)
