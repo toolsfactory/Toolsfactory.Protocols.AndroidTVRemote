@@ -1,11 +1,7 @@
-﻿using System;
-using System.Linq;
-
-namespace Toolsfactory.Protocols.AndroidTVRemote.Events
+﻿namespace Toolsfactory.Protocols.AndroidTVRemote.Events
 {
-    public class ActivatedChangedEventArgs : EventArgs
+    public class ActivatedChangedEventArgs(ProtoBuf.RemoteFeatures features) : EventArgs
     {
-        public ProtoBuf.RemoteFeatures Features { get; init; }
-        public ActivatedChangedEventArgs(ProtoBuf.RemoteFeatures features) => Features = features;
+        public ProtoBuf.RemoteFeatures Features { get; init; } = features;
     }
 }

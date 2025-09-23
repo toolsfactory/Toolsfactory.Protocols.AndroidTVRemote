@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Toolsfactory.Protocols.AndroidTVRemote.ProtoBuf
+﻿namespace Toolsfactory.Protocols.AndroidTVRemote.ProtoBuf
 {
     [Flags]
-    public enum RemoteFeatures : Int32
+    public enum RemoteFeatures
     {
         Ping =     0b_0000_0000_0001,
         Key =      0b_0000_0000_0010,

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Linq;
-
-namespace Toolsfactory.Protocols.AndroidTVRemote.Events
+﻿namespace Toolsfactory.Protocols.AndroidTVRemote.Events
 {
-    public class PingRequestedEventArgs : EventArgs
+    public class PingRequestedEventArgs(int sequenceId) : EventArgs
     {
-        public int SequenceId { get; init; }
-        public PingRequestedEventArgs(int sequenceId) => SequenceId = sequenceId;
+        public int SequenceId { get; init; } = sequenceId;
     }
 }

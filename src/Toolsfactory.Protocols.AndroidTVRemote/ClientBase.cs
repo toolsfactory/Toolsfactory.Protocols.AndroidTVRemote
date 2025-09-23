@@ -1,80 +1,80 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Security;
+﻿using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
-using Toolsfactory.Protocols.AndroidTVRemote.ProtoBuf;
+using Microsoft.Extensions.Logging;
+using Toolsfactory.Protocols.AndroidTVRemote.Extensions;
 
 namespace Toolsfactory.Protocols.AndroidTVRemote
 {
     public abstract class ClientBase : IDisposable
     {
-        #region private fields
-        protected CancellationTokenSource _Cts = new CancellationTokenSource();
-        protected SslStream? _Stream = null;
-        protected TcpClient? _Client = null;
-        protected ILogger? _Logger = null;
-        protected bool _Logging = false;
-        protected ILoggerFactory? _LoggerFactory;
+        #region Fields
+
+        protected CancellationTokenSource? Cts;
+        protected readonly bool Logging;
+        protected SslStream? Stream;
+        protected TcpClient? Client;
+        protected ILogger? Logger;
         private bool _disposedValue;
-        bool _Connected = false;
+        private bool _connected;
         #endregion
 
         #region Properties
-        public string ServerAddress { get; init; }
-        public UInt16 Port { get; init; }
-        public SslProtocols Protocol { get; init; } = SslProtocols.Tls13;
+        protected string ServerAddress { get; init; }
+        protected ushort Port { get; init; }
+        protected SslProtocols Protocol { get; init; }
+        protected X509Certificate2 ClientCertificate { get; }
+        protected bool ValidateServerCertificate { get; init; }
+        protected string? PinnedServerCertificateThumbprint { get; init; }
+        
         /// <summary>
         /// Indicates whether the client is connected to the server on TCP level
         /// </summary>
-        public bool Connected 
+        protected bool Connected 
         { 
-            get => _Connected; 
-            protected set { if (value == _Connected) return; _Connected = value; OnConnectionChanged(this, new EventArgs()); } 
+            get => _connected;
+            set
+            {
+                if (value == _connected) return; 
+                
+                _connected = value; 
+                OnConnectionChanged(this, EventArgs.Empty);
+            } 
         }
-        public X509Certificate2 ClientCertificate { get; init; }
-        
-
         #endregion
 
         #region Events
+        // ReSharper disable once EventNeverSubscribedTo.Global
         public event EventHandler? ConnectionChanged;
-        protected virtual void OnConnectionChanged(object? sender, EventArgs e) => ConnectionChanged?.Invoke(sender, e);
+        private void OnConnectionChanged(object? sender, EventArgs e) => ConnectionChanged?.Invoke(sender, e);
         #endregion
 
-
         #region Constructors
-       protected ClientBase(string serverAddress, X509Certificate2 clientCertificate, ILoggerFactory? loggerFactory)
+        protected ClientBase(string serverAddress, X509Certificate2 clientCertificate, ILoggerFactory? loggerFactory)
         {
-            ArgumentNullException.ThrowIfNullOrWhiteSpace(serverAddress, nameof(serverAddress));
+            ArgumentException.ThrowIfNullOrWhiteSpace(serverAddress, nameof(serverAddress));
             ServerAddress = serverAddress;
-            Protocol = SslProtocols.Tls12;
+            Protocol = SslProtocols.Tls13;
             ClientCertificate = clientCertificate;
-            _LoggerFactory = loggerFactory;
-            _Logging = loggerFactory != null;
-            _Logger = _LoggerFactory?.CreateLogger<ClientBase>();
-            _Connected = false;
+            Logging = loggerFactory != null;
+            Logger = loggerFactory?.CreateLogger<ClientBase>();
+            _connected = false;
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
-            if (!_disposedValue)
+            if (_disposedValue) return;
+            if (disposing)
             {
-                if (disposing)
-                {
-                    Close();
-                    _Stream?.Dispose();
-                    _Stream = null;
-                    _Client?.Dispose();
-                    _Client = null;
-                }
-                _disposedValue = true;
+                Close();
+                Stream?.Dispose();
+                Stream = null;
+                Client?.Dispose();
+                Client = null;
+                Cts!.Dispose();
             }
+            _disposedValue = true;
         }
 
         public void Dispose()
@@ -84,106 +84,120 @@ namespace Toolsfactory.Protocols.AndroidTVRemote
         }
         #endregion
 
-
         #region Connection management
         protected async Task InitiateConnectionAsync()
         {
-            if (Connected)
-                return;
+            if (Connected) return;
 
-            if (_Logging) _Logger!.LogDebug($"Connecting to {ServerAddress}:{Port}");
+            if (Logging) Logger!.LogDebug("Connecting to {S}:{Port1}", ServerAddress, Port);
             await SetupStreamAsync();
 
-            // Handle incoing Data in a background thread
-            _ = Task.Run(() => HandleClientAsync());
+            Cts?.Dispose();
+            Cts = new CancellationTokenSource();
+
+            var token = Cts.Token;
+            _ = Task.Run(async () => await HandleClientAsync(), token);
 
             Connected = true;
-            if (_Logging) _Logger!.LogInformation($"Connected to {ServerAddress}:{Port}");
+            if (Logging) Logger!.LogInformation("Connected to {S}:{Port1}", ServerAddress, Port);
         }
 
-        public virtual void Close()
+        protected virtual void Close()
         {
-            if (!Connected)
-                return;
-            if (_Logging) _Logger!.LogDebug($"Actively closing connection to {ServerAddress}:{Port}");
-            _Cts.Cancel();
-            _Stream?.Close();
-            _Client?.Close();
-            Connected = false;
-        }
-
-        protected async Task SetupStreamAsync()
-        {
-            if (_Stream != null)
-                return;
-
-            if (ClientCertificate == null)
-                throw new PairingException($"Set a client certificate before requesting a secure stream!");
-
-            var sslOptions = new SslClientAuthenticationOptions
+            if (Logging) Logger!.LogDebug("Actively closing connection to {S}:{Port1}", ServerAddress, Port);
+            
+            try
             {
-                TargetHost = ServerAddress,
-                AllowRenegotiation = true,
-                ApplicationProtocols = new List<SslApplicationProtocol> { SslApplicationProtocol.Http2 },
-                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-                CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                {
-                    // Android TV 14 erfordert möglicherweise lockerere Validierung
-                    return true; // Nur für Tests!
-                }
-            };
+                Cts?.Cancel();
+            }
+            catch { /* ignore */ }
 
             try
             {
-                _Client = new TcpClient();
-                await _Client.ConnectAsync(ServerAddress, Port);
-                _Stream = new SslStream(_Client.GetStream(), false);
-                //_Stream.AuthenticateAsClient(ServerAddress, new X509CertificateCollection() { ClientCertificate }, SslProtocols.Tls12 | SslProtocols.Tls13, false);
-                _Stream.AuthenticateAsClient(sslOptions);
+                Stream?.Dispose();
+                Client?.Dispose();
             }
-            catch (Exception ex)
+            catch { /* ignore */ }
+
+            try
             {
-                throw ex;
+                Cts?.Dispose();
+                Cts = null;
             }
+            catch { /* ignore */ }
+
+            Connected = false;
         }
 
-        private bool VaildateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private async Task SetupStreamAsync()
         {
-            return true;
+            if (Stream != null) return;
+
+            if (ClientCertificate == null)
+                throw new PairingException("Set a client certificate before requesting a secure stream!");
+
+            RemoteCertificateValidationCallback callback;
+
+            if (!ValidateServerCertificate)
+                callback = static (sender, certificate, chain, error) => true;
+            else
+            {
+                callback = (sender, certificate, chain, errors) =>
+                {
+                    if (errors != SslPolicyErrors.None)
+                        return false;
+
+                    if (!string.IsNullOrWhiteSpace(PinnedServerCertificateThumbprint) && certificate is not null)
+                    {
+                        using var serverCert2 = new X509Certificate2(certificate);
+                        string thumbActual = serverCert2.Thumbprint.Replace(" ", "").ToUpperInvariant();
+                        string thumbPinned = PinnedServerCertificateThumbprint.Replace(" ", "").ToUpperInvariant();
+                        return thumbActual == thumbPinned;
+                    }
+
+                    return true;
+                };
+            }
+            Client = new TcpClient();
+            await Client.ConnectAsync(ServerAddress, Port);
+            Stream = new SslStream(Client.GetStream(), false, callback, null);
+            await Stream.AuthenticateAsClientAsync(ServerAddress, new X509CertificateCollection { ClientCertificate }, Protocol, false);
+            
+            Cts?.Dispose();
+            Cts = new CancellationTokenSource();
+
+            var token = Cts.Token;
+            _ = Task.Run(async () => await HandleClientAsync(), token);
         }
 
         private async Task HandleClientAsync()
         {
-            while (!_Cts.Token.IsCancellationRequested)
+            while (!Cts!.Token.IsCancellationRequested)
             {
-                var read = await ReceiveResponseMessageAsync(_Cts.Token);
-                if (read != null)
+                var read = await ReceiveResponseMessageAsync(Cts.Token);
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+                if (read == null) continue;
+                try
                 {
-                    try
-                    {
-                        if (_Logging) _Logger!.LogDebug($"Received raw: {read.ToHex()}");
-                        ProcessMessage(read);
-                    }
-                    catch (Exception ex)
-                    {
-                        if (_Logging) _Logger!.LogError($"Error processing message: {ex.Message}");
-                        if (_Logging) _Logger!.LogDebug($"Raw Message: {read.ToHex()}");
-                    }
+                    if (Logging) Logger!.LogDebug($"Received raw: {read.ToHex()}");
+                    ProcessMessage(read);
+                }
+                catch (Exception ex)
+                {
+                    if (Logging) Logger!.LogError($"Error processing message: {ex.Message}");
+                    if (Logging) Logger!.LogDebug($"Raw Message: {read.ToHex()}");
                 }
             }
         }
 
-        async Task<byte[]> ReceiveResponseMessageAsync(CancellationToken token)
+        private async Task<byte[]> ReceiveResponseMessageAsync(CancellationToken token)
         {
-            var length = await _Stream!.ReadVarIntAsync(token);
-            var bytes = await _Stream!.ReadBytesAsync((int)length, token);
+            var length = await Stream!.ReadVarIntAsync(token);
+            var bytes = await Stream!.ReadBytesAsync((int)length, token);
             return bytes;
         }
-
         #endregion
 
         protected abstract void ProcessMessage(byte[] data);
-
     }
 }

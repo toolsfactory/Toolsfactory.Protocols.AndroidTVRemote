@@ -1,11 +1,7 @@
-﻿using System;
-using System.Linq;
-
-namespace Toolsfactory.Protocols.AndroidTVRemote.Events
+﻿namespace Toolsfactory.Protocols.AndroidTVRemote.Events
 {
-    public class StartedChangedEventArgs : EventArgs
+    public class StartedChangedEventArgs(bool started) : EventArgs
     {
-        public bool Started { get; init; }
-        public StartedChangedEventArgs(bool started) => Started = started;
+        public bool Started { get; init; } = started;
     }
 }

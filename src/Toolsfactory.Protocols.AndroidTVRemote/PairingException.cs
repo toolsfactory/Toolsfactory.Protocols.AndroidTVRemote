@@ -1,10 +1,6 @@
-﻿using System;
-using System.Linq;
-
-namespace Toolsfactory.Protocols.AndroidTVRemote
+﻿namespace Toolsfactory.Protocols.AndroidTVRemote
 {
-    public class PairingException : Exception
-    {
-        public PairingException(string message) : base(message) { }
-    }
+    public class PairingException(string message) : Exception(message);
+
+    public class PairingAttemptsException(string message) : Exception(message);
 }
